@@ -1,15 +1,17 @@
-__author__ = 'Andre'
+#!/usr/bin/env python2
+# coding: utf-8
 
-import socket
-import select
-import sys
-import os
-import threading
-import time
+import os,socket,threading,time
+#import traceback
 
-allow_delete = False
+allow_delete = True
+local_ip = socket.gethostbyname(socket.gethostname())
+local_port = 8888
+currdir=os.path.abspath('.')
 
-class FTPserverThread():
+
+
+class FTPserverThread(threading.Thread):
     def __init__(self,(conn,addr)):
         self.conn=conn
         self.addr=addr
@@ -17,7 +19,8 @@ class FTPserverThread():
         self.cwd=self.basewd
         self.rest=False
         self.pasv_mode=False
-        #threading.Thread.__init__(self)
+        self.passwd=''
+        threading.Thread.__init__(self)
 
     def run(self):
         self.conn.send('220 Welcome!\r\n')
@@ -42,9 +45,24 @@ class FTPserverThread():
         else:
             self.conn.send('451 Sorry.\r\n')
     def USER(self,cmd):
+        print cmd[5:-2]
+        with open('user.txt','r') as searchfile:
+            for line in searchfile:
+                user = line.split('\t')[0]
+                passwd = line.split('\t')[1]
+                if cmd[5:-2] in line:
+                    self.passwd = passwd
+                    break
+                else :
+                    print 'no'
         self.conn.send('331 OK.\r\n')
     def PASS(self,cmd):
-        self.conn.send('230 OK.\r\n')
+        if self.passwd != cmd[5:-2] :
+            print 'not found'
+            self.conn.send('404 NOT FOUND.\r\n')
+            #self.stop_datasock()
+        else:
+            self.conn.send('230 OK.\r\n')
         #self.conn.send('530 Incorrect.\r\n')
     def QUIT(self,cmd):
         self.conn.send('221 Goodbye.\r\n')
@@ -202,43 +220,28 @@ class FTPserverThread():
         self.stop_datasock()
         self.conn.send('226 Transfer complete.\r\n')
 
+class FTPserver(threading.Thread):
+    def __init__(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind((local_ip,local_port))
+        threading.Thread.__init__(self)
+
+    def run(self):
+        self.sock.listen(5)
+        while True:
+            th=FTPserverThread(self.sock.accept())
+            th.daemon=True
+            th.start()
+
+    def stop(self):
+        self.sock.close()
+
 if __name__=='__main__':
-    local_ip = socket.gethostbyname(socket.gethostname())
-    local_port = 8888
-    currdir=os.path.abspath('.')
-    print local_ip
-    # creating socket server object, bind, and listen
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((local_ip,local_port))
-    server_socket.listen(5)
-    
-    # list to store accepted client
-    input_list = [server_socket]
-    
-    try:
-        while 1:
-            # serving multiple client alternately; one socket in a time
-            input, output, exception = select.select(input_list, [], [])
-    
-            for socket in input:
-                # accept client and add it to list input
-                if socket == server_socket:
-                    client_socket, client_address = server_socket.accept()
-                    input_list.append(client_socket)
-                    print "Accepted client: ", client_address
-    
-                # handle sending and receiving message
-                else:
-                    #message = socket.recv(1024)
-                    FTPserverThread(client_socket)
-                    #if message:
-                    #    socket.send(message)
-                    #    print "Send to client : ", client_address, message
-                    #else:
-                    #    socket.close()
-                    #    input_list.remove(socket)
-    
-    # when user press CTRL + C (in Linux), close socket server and exit
-    except KeyboardInterrupt:
-        server_socket.close()
-        sys.exit(0)
+    ftp=FTPserver()
+    ftp.daemon=True
+    ftp.start()
+
+    print 'On', local_ip, ':', local_port
+    print currdir
+    raw_input('Enter to end...\n')
+    ftp.stop()
