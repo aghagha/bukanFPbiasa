@@ -33,7 +33,7 @@ class Server:
 
                 if s == self.server:
                     # handle the server socket
-                    c = Client(self.server.accept())
+                    c = FTPthread(self.server.accept())
                     c.start()
                     self.threads.append(c)
 
@@ -48,17 +48,52 @@ class Server:
         for c in self.threads:
             c.join()
 
-        class Client(threading.Thread):
-		    def __init__(self,(conn,addr)):
-		        self.conn=conn
-		        self.addr=addr
-		        self.basewd=currdir
-		        self.cwd=self.basewd
-		        self.rest=False
-		        self.pasv_mode=False
-		        self.passwd=''
-		        threading.Thread.__init__(self)
+class FTPthread(threading.Thread):
+    #init value untuk setiap thread
+    def __init__(self,(conn,addr)):
+        self.conn=conn
+        self.addr=addr
+        self.basewd=currdir
+        self.cwd=self.basewd
+        self.rest=False
+        self.pasv_mode=False
+        self.passwd=''
+        self.running= True
+        threading.Thread.__init__(self)
 
+    def run(self):
+        self.conn.send('220 Welcome\r\n')
+        while self.running :
+            cmd = self.conn.recv(1024)
+            if not cmd: break
+            else:
+                print 'Received:',cmd
+                func = getattr(self,cmd[:4].strip().upper())
+                func(cmd)
+
+        self.conn.close()
+    
+    # get User and check whether user is on user.txt or not , if exist set password for next command
+    def USER(self,cmd):
+        with open('user.txt','r') as search:
+            for line in search:
+                if cmd[5:-2] in line:
+                    user = line.split('\t')[0]
+                    self.passwd = line.split('\t')[1].split('\n')[0]
+                    break
+
+        self.conn.send('331 User ' +user + 'OK.Password Required\r\n')
+    # compare input PASS and in user.txt
+    def PASS(self):
+        if self.passwd != cmd[5:-2]:
+            self.conn.send('530 Login Authentication Failed.\r\n')
+            self.running = False
+        else
+            self.conn.send('230 Login successfull\r\n')
+
+    def Quit(self):
+        self.conn.send('221 Goodbye\r\n')
+        self.running = False
     	
 
 if __name__ == '__main__':
