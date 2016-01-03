@@ -90,11 +90,45 @@ class FTPthread(threading.Thread):
             self.running = False
         else
             self.conn.send('230 Login successfull\r\n')
-
+			
+	def HELP(self, cmd):
+        self.conn.send('214-The following commands are recognized.\r\nCWD DELE HELP LIST MKD PASS PWD QUIT RETR RMD RNTO RNFR STOR USER\r\n')
+        self.conm.send('214 Help OK.')
+		
     def Quit(self):
         self.conn.send('221 Goodbye\r\n')
         self.running = False
-    	
+
+    def PWD(self,cmd):
+        cwd=os.path.relpath(self.cwd,self.basewd)
+        if cwd=='.':
+            cwd='/'
+        else:
+            cwd='/'+cwd
+        self.conn.send('257 \"%s\"\r\n' % cwd)
+
+    def CWD(self,cmd):
+        chwd=cmd[4:-2]
+        if chwd=='/':
+            self.cwd=self.basewd
+        elif chwd[0]=='/':
+            self.cwd=os.path.join(self.basewd,chwd[1:])
+        else:
+            self.cwd=os.path.join(self.cwd,chwd)
+        self.conn.send('250 OK.\r\n')
+
+    def MKD(self,cmd):
+        dn=os.path.join(self.cwd,cmd[4:-2])
+        os.mkdir(dn)
+        self.conn.send('257 Directory created.\r\n')
+
+    def RMD(self,cmd):
+        dn=os.path.join(self.cwd,cmd[4:-2])
+        if allow_delete:
+            os.rmdir(dn)
+            self.conn.send('250 Directory deleted.\r\n')
+        else:
+            self.conn.send('450 Not allowed.\r\n')
 
 if __name__ == '__main__':
 	# run server class
