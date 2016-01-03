@@ -59,6 +59,7 @@ class FTPthread(threading.Thread):
         self.pasv_mode=False
         self.passwd=''
         self.running= True
+        self.auth = 0
         threading.Thread.__init__(self)
 
     def run(self):
@@ -67,14 +68,25 @@ class FTPthread(threading.Thread):
             cmd = self.conn.recv(1024)
             if not cmd: break
             else:
-                print 'Recieved:',cmd
-                try:
+                if cmd[:4] == 'USER':
                     func=getattr(self,cmd[:4].strip().upper())
                     func(cmd)
-                except Exception,e:
-                    print 'ERROR:',e
-                    #traceback.print_exc()
-                    self.conn.send('500 Sorry.\r\n')
+                    self.auth= 1
+                elif cmd[:4] =='PASS':
+                    func=getattr(self,cmd[:4].strip().upper())
+                    func(cmd)
+                    self.auth = 2
+                elif self.auth == 2:
+                    print 'Recieved:',cmd
+                    try:
+                        func=getattr(self,cmd[:4].strip().upper())
+                        func(cmd)
+                    except Exception,e:
+                        print 'ERROR:',e
+                        #traceback.print_exc()
+                        self.conn.send('500 Sorry.\r\n')
+                else:
+                    self.conn.send('Error login required\r\n')
 
         #self.conn.close()
     
@@ -87,13 +99,13 @@ class FTPthread(threading.Thread):
                     self.passwd = line.split('\t')[1].split('\n')[0]
                     break
 
-        self.conn.send('331 User ' +user + 'OK.Password Required\r\n')
+        self.conn.send('331 Please specify the password\r\n')
     # compare input PASS and in user.txt
-    def PASS(self):
+    def PASS(self,cmd):
         if self.passwd != cmd[5:-2]:
-            self.conn.send('530 Login Authentication Failed.\r\n')
+            self.conn.send('530 Login authentication failed.\r\n')
             self.running = False
-        else
+        else:
             self.conn.send('230 Login successfull\r\n')
 			
 	def HELP(self, cmd):
