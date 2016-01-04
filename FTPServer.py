@@ -1,5 +1,4 @@
 import socket
-import os
 import threading
 import select
 import sys
@@ -9,41 +8,37 @@ import time
 currdir=os.path.abspath('.')
 local_ip='localhost'
 class Server:
-	def __init__(self):
-		self.host = local_ip
-		self.port = 5000
-		self.size = 1024
-		self.server = None
-		self.threads = []
+    def __init__(self):
+        self.host = local_ip
+        self.port = 5000
+        self.size = 1024
+        self.server = None
+        self.threads = []
 
-	def open_socket(self): #function to open server socket
-	 	self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def open_socket(self): #function to open server socket
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((self.host,self.port))
         self.server.listen(5)
 
     def run(self):
-    	self.open_socket()
+        self.open_socket()
         input = [self.server, sys.stdin]
         running = 1
+
         while running:
             inputready,outputready,exceptready = select.select(input,[],[])
-
             for s in inputready:
-
                 if s == self.server:
                     # handle the server socket
                     c = FTPthread(self.server.accept())
                     c.start()
                     self.threads.append(c)
-
                 elif s == sys.stdin:
                     # handle standard input
                     junk = sys.stdin.readline()
                     running = 0
-
         # close all threads
-
         self.server.close()
         for c in self.threads:
             c.join()
@@ -98,20 +93,19 @@ class FTPthread(threading.Thread):
                     user = line.split('\t')[0]
                     self.passwd = line.split('\t')[1].split('\n')[0]
                     break
-
         self.conn.send('331 Please specify the password\r\n')
     # compare input PASS and in user.txt
     def PASS(self,cmd):
         if self.passwd != cmd[5:-2]:
             self.conn.send('530 Login authentication failed.\r\n')
-            self.running = False
+            #self.running = False
         else:
             self.conn.send('230 Login successfull\r\n')
-			
-	def HELP(self, cmd):
+            
+    def HELP(self, cmd):
         self.conn.send('214-The following commands are recognized.\r\nCWD DELE HELP LIST MKD PASS PWD QUIT RETR RMD RNTO RNFR STOR USER\r\n')
         self.conm.send('214 Help OK.')
-		
+        
     def QUIT(self):
         self.conn.send('221 Goodbye\r\n')
         self.running = False
@@ -160,8 +154,8 @@ class FTPthread(threading.Thread):
 
     def RMD(self,cmd):
         dn=os.path.join(self.cwd,cmd[4:-2])
-            os.rmdir(dn)
-            self.conn.send('250 Directory deleted.\r\n')
+        os.rmdir(dn)
+        self.conn.send('250 Directory deleted.\r\n')
     
     def DELE(self,cmd):
         fn=os.path.join(self.cwd,cmd[5:-2])
@@ -172,6 +166,15 @@ class FTPthread(threading.Thread):
         result = getstatusoutput(terminalcmd)
         #os.remove(fn)
         self.conn.send('250 File deleted.\r\n')
+
+    def RNFR(self,cmd):
+        self.rnfn=os.path.join(self.cwd,cmd[5:-2])
+        self.conn.send('350 Ready.\r\n')
+
+    def RNTO(self,cmd):
+        fn=os.path.join(self.cwd,cmd[5:-2])
+        os.rename(self.rnfn,fn)
+        self.conn.send('250 File renamed.\r\n')
 
     def RETR(self,cmd):
         fn=os.path.join(self.cwd,cmd[5:-2])
@@ -189,7 +192,7 @@ class FTPthread(threading.Thread):
         self.conn.send('226 Transfer complete.\r\n')
 
 if __name__ == '__main__':
-	# run server class
-	s = server()
-	s.run
+    # run server class
+    s = Server()
+    s.run()
 

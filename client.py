@@ -15,6 +15,23 @@ if s.connect:
 	
 	while(1):
 		command=raw_input("masukan perintah anda>>  ")
+		if "USER" in command:
+			username=raw_input("masukan username>> ")
+			s.send(command+' '+username+'\r\n')
+			msg=s.recv(1024)
+			print msg
+
+			password=raw_input("masukan password>> ")
+			s.send('PASS '+password+'\r\n')
+			msg=s.recv(1024)
+			print msg
+
+		# if "PASS" in command:
+		# 	password=raw_input("masukan password>> ")
+		# 	s.send(command+' '+password+'\r\n')
+		# 	msg=s.recv(1024)
+		# 	print msg
+
 		if "LIST" in command:
 			s.send(command+'\r\n')
 			msg=s.recv(1024)
