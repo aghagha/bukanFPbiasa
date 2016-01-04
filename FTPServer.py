@@ -129,13 +129,16 @@ class FTPthread(threading.Thread):
         self.conn.send('250 OK.\r\n')
 
     def LIST(self,cmd):
-        self.conn.send('150 Here comes the directory listing.\r\n')
+        listjadi = '150 Here comes the directory listing.\r\n'
+        print cmd
         print 'list:', self.cwd
+        
         for t in os.listdir(self.cwd):
             print os.path.join(self.cwd,t)
-            k=self.toListItem(os.path.join(self.cmd,t))
-            self.conn.send(k+'\r\n')
-        self.conn.send('226 Directory send OK.\r\n')
+            k=self.toListItem(os.path.join(self.cwd,t))
+            listjadi=listjadi+k+'\r\n'
+            #self.conn.send(k+'\r\n')
+        self.conn.send(listjadi+'226 Directory send OK.\r\n')
     
     def toListItem(self,fn):
         st=os.stat(fn)
@@ -146,7 +149,7 @@ class FTPthread(threading.Thread):
         d=(os.path.isdir(fn)) and 'd' or '-'
         ftime=time.strftime(' %b %d %H:%M ', time.gmtime(st.st_mtime))
         return d+mode+' 1 user group '+str(st.st_size)+ftime+os.path.basename(fn)
-
+        
     def MKD(self,cmd):
         dn=os.path.join(self.cwd,cmd[4:-2])
         os.mkdir(dn)
@@ -174,19 +177,16 @@ class FTPthread(threading.Thread):
         self.conn.send('250 File renamed.\r\n')
 
     def RETR(self,cmd):
+        retr_result = ''
         fn=os.path.join(self.cwd,cmd[5:-2])
         print 'Downloading', fn
 
-        fi = open (fn, 'rb')
-        self.conn.send('150 Opeing data connection.\r\n')
-        if self.rest:
-            fi.seek(self.pos)
-            self.rest = False
-        data = fi.read(1024)
-        while data:
-            data = fi.read(1024)
-        fi.close()
-        self.conn.send('226 Transfer complete.\r\n')
+        self.conn.send('150 Opening data connection.\r\n')
+        
+        with open (fn, 'rb') as f:
+            data = f.read()
+        self.conn.sendall('%16d' % len(data))
+        self.conn.sendall(data+'\r\n\r\n226 Transfer complete.\r\n')
 
     def STOR(self,cmd):
         fn=os.path.join(self.cwd,cmd[5:-2])

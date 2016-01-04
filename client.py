@@ -95,6 +95,29 @@ if s.connect:
 			msg=s.recv(1024)
 			print msg
 
+		elif "RETR" in command:
+			filename=raw_input("masukkan nama file yang ingin diunduh>> ")
+			s.send(command+' '+filename+'\r\n')
+			msg=s.recv(1024)
+			print msg
+			
+			f=open(filename,'wb')
+
+			size = int(s.recv(16))
+			diterima = ''
+			while size > len(diterima):
+				data = s.recv(1024)
+				if '\r\n\r\n' in data:
+					msg = data.split('\r\n\r\n')[1]
+					print msg
+					dataakhir = data.split('\r\n\r\n')[0]
+					diterima += dataakhir
+					f.write(data)
+				if not data:
+					break
+				diterima += data
+				f.write(data)
+
 		elif "STOR" in command:
 			fn=raw_input("masukan nama file yang ingin diunggah>> ")
 			s.send(command+' '+fn+'\r\n')
