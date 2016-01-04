@@ -103,8 +103,7 @@ class FTPthread(threading.Thread):
             self.conn.send('230 Login successfull\r\n')
             
     def HELP(self, cmd):
-        self.conn.send('214-The following commands are recognized.\r\nCWD DELE HELP LIST MKD PASS PWD QUIT RETR RMD RNTO RNFR STOR USER\r\n')
-        self.conm.send('214 Help OK.')
+        self.conn.send('214-The following commands are recognized.\r\nCWD DELE HELP LIST MKD PASS PWD QUIT RETR RMD RNTO RNFR STOR USER\r\n 214 Help OK.')
         
     def QUIT(self,cmd):
         self.conn.send('221 Goodbye\r\n')
@@ -163,7 +162,7 @@ class FTPthread(threading.Thread):
     def DELE(self,cmd):
         fn=os.path.join(self.cwd,cmd[5:-2])
         terminalcmd = 'rmd -rf '+cmd[5:-2]
-        #esult = getstatusoutput(terminalcmd)
+        #result = getstatusoutput(terminalcmd)
         os.remove(fn)
         self.conn.send('250 File deleted.\r\n')
 
