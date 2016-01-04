@@ -83,7 +83,7 @@ class FTPthread(threading.Thread):
                 else:
                     self.conn.send('Error login required\r\n')
 
-        #self.conn.close()
+        self.conn.close()
     
     # get User and check whether user is on user.txt or not , if exist set password for next command
     def USER(self,cmd):
@@ -98,7 +98,7 @@ class FTPthread(threading.Thread):
     def PASS(self,cmd):
         if self.passwd != cmd[5:-2]:
             self.conn.send('530 Login authentication failed.\r\n')
-            #self.running = False
+            self.running = False
         else:
             self.conn.send('230 Login successfull\r\n')
             
@@ -106,7 +106,7 @@ class FTPthread(threading.Thread):
         self.conn.send('214-The following commands are recognized.\r\nCWD DELE HELP LIST MKD PASS PWD QUIT RETR RMD RNTO RNFR STOR USER\r\n')
         self.conm.send('214 Help OK.')
         
-    def QUIT(self):
+    def QUIT(self,cmd):
         self.conn.send('221 Goodbye\r\n')
         self.running = False
 
