@@ -159,12 +159,9 @@ class FTPthread(threading.Thread):
     
     def DELE(self,cmd):
         fn=os.path.join(self.cwd,cmd[5:-2])
-        if mswindows:
-            terminalcmd = 'RMDIR '+fn + " /s /q"
-        else:
-            terminalcmd = 'rmd -rf '+cmd[5:-2]
-        result = getstatusoutput(terminalcmd)
-        #os.remove(fn)
+        terminalcmd = 'rmd -rf '+cmd[5:-2]
+        #esult = getstatusoutput(terminalcmd)
+        os.remove(fn)
         self.conn.send('250 File deleted.\r\n')
 
     def RNFR(self,cmd):
@@ -190,6 +187,22 @@ class FTPthread(threading.Thread):
             data = fi.read(1024)
         fi.close()
         self.conn.send('226 Transfer complete.\r\n')
+
+    def STOR(self,cmd):
+        fn=os.path.join(self.cwd,cmd[5:-2])
+        print 'uploading:',fn
+        fo=open(fn,'wb')
+        size = int(self.conn.recv(16))
+        self.conn.send('150 Opening data connection.\r\n')
+        diterima=''
+        while size > len(diterima):
+            data=self.conn.recv(1024)
+            if not data:
+                break
+            diterima+=data
+            fo.write(diterima)
+        #fo.close
+        #self.conn.send('22')
 
 if __name__ == '__main__':
     # run server class

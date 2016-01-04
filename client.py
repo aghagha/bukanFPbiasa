@@ -94,3 +94,15 @@ if s.connect:
 			s.send("HELP\r\n")
 			msg=s.recv(1024)
 			print msg
+
+		elif "STOR" in command:
+			fn=raw_input("masukan nama file yang ingin diunggah>> ")
+			s.send(command+' '+fn+'\r\n')
+			# msg=s.recv(4096)
+			# print msg
+			#msg = s.recv(1024)
+			#print msg
+			with open(fn,'rb') as f:
+				data=f.read()
+			s.sendall('%16d' % len(data))
+			s.sendall(data)
